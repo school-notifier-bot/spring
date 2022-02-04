@@ -1,0 +1,22 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: update
+  sql:
+    init:
+      encoding: UTF-8
+
+app:
+  datasource:
+    perco:
+      driver-class-name: org.firebirdsql.jdbc.FBDriver
+      url: jdbc:firebirdsql://localhost:3050/C:\Users\zhans\IdeaProjects\notifierbot\SCD17K.FDB?sql_dialect=3&charSet=utf-8
+      username: SYSDBA
+      password: masterkey
+      useUnicode: true
+      characterEncoding: UTF-8
+    bot:
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://localhost:3306/notifier_bot
+      username: root
+      password:
