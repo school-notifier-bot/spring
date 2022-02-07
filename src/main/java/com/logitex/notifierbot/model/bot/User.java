@@ -9,8 +9,7 @@ import javax.persistence.*;
 @Data
 public class User {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id")
+    @Column(name = "chat_id")
     private long ID;
 
     @Column(name = "first_name")
@@ -21,7 +20,4 @@ public class User {
 
     @Column(name = "phone_number", unique = true)
     private String phoneNumber;
-
-    @Column(name = "role")
-    private String role;
 }

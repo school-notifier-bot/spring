@@ -13,9 +13,11 @@ public class UserKid {
     @Column(name = "id")
     private Long ID;
 
-    @Column(name = "user_id")
-    private Long userID;
+    @OneToOne
+    @JoinColumn(name = "user_id")
+    private User user;
 
-    @Column(name = "kid_id")
-    private Long kidID;
+    @OneToOne
+    @JoinColumn(name = "kid_id")
+    private Kid kid;
 }
