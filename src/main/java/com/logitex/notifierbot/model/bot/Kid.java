@@ -9,6 +9,7 @@ import javax.persistence.*;
 @Data
 public class Kid {
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
     private Long ID;
     @Column(name = "name")
