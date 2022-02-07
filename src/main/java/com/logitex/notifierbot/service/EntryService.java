@@ -24,7 +24,7 @@ public class EntryService {
     @Scheduled(fixedRate = 1000 * 60)
     public void updateData() {
         Date date = Date.valueOf(LocalDate.now());
-        Time time = new Time((System.currentTimeMillis() / 1000) / 60 - 1);
+        Time time = new Time(System.currentTimeMillis() - 1000 * 60);
         entries = repository.findByDateAndTimeAfter(date, time);
         log.info("Entries: {}", entries);
     }
