@@ -1,7 +1,7 @@
 package com.logitex.notifierbot.service;
 
-import com.logitex.notifierbot.model.perco.Entry;
-import com.logitex.notifierbot.repository.perco.EntryRepository;
+import com.logitex.notifierbot.model.perco.TabelIntermediadate;
+import com.logitex.notifierbot.repository.perco.TabelIntermediadateRepository;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,8 +18,8 @@ import java.util.List;
 @Slf4j
 @RequiredArgsConstructor
 public class EntryService {
-    private final EntryRepository repository;
-    private List<Entry> entries;
+    private final TabelIntermediadateRepository repository;
+    private List<TabelIntermediadate> entries;
 
     @Scheduled(fixedRate = 1000 * 60)
     public void updateData() {
