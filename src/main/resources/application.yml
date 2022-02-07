@@ -20,3 +20,7 @@ app:
       url: jdbc:mysql://localhost:3306/notifier_bot
       username: root
       password:
+
+bot:
+  username: parent_notifier_bot
+  token: 5149330855:AAH8qQMEP-ZkVkMDw6wxMD-gmBJ64oiRpFs
