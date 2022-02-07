@@ -9,14 +9,12 @@ import javax.persistence.*;
 @Data
 public class Kid {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id")
+    @Column(name = "staff_id")
     private Long ID;
-    @Column(name = "name")
-    private String name;
+
+    @Column(name = "full_fio")
+    private String full_fio;
+
     @Column(name = "tabel_id")
     private Long tabelID;
-    @Column(name = "staff_id")
-    private Long staffID;
-
 }
