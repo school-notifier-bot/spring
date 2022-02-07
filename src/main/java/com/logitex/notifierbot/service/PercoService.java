@@ -16,12 +16,12 @@ import java.time.LocalDate;
 import java.util.List;
 
 @Service
-@Getter
 @Slf4j
 @RequiredArgsConstructor
 public class PercoService {
     private final TabelIntermediadateRepository tabelIntermediadateRepository;
     private final StaffRepository staffRepository;
+    @Getter
     private List<TabelIntermediadate> entries;
 
     @Scheduled(fixedRate = 1000 * 60)
