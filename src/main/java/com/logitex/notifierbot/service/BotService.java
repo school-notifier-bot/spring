@@ -7,10 +7,11 @@ import com.logitex.notifierbot.model.perco.Staff;
 import com.logitex.notifierbot.repository.bot.KidRepository;
 import com.logitex.notifierbot.repository.bot.UserKidRepository;
 import com.logitex.notifierbot.repository.bot.UserRepository;
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 @Slf4j
@@ -38,8 +39,8 @@ public class BotService {
         userKidRepository.deleteAll(userKidRepository.findByUser(userRepository.getById(chatID)));
     }
 
-    public Kid getKidByStaffId(Long staffId) {
-        return kidRepository.findById(staffId).orElse(null);
+    public Kid getKidByTabelId(Long tabelId) {
+        return kidRepository.findByTabelID(tabelId).orElse(null);
     }
 
     public void insertKid(Staff staff) {
@@ -57,5 +58,20 @@ public class BotService {
         userKid.setUser(user);
         userKid.setKid(kid);
         userKidRepository.save(userKid);
+    }
+
+    public List<UserKid> getUserKids(Long chatId) {
+        User user = userRepository.getById(chatId);
+        return userKidRepository.findByUser(user);
+    }
+
+    public User getUser(Long chatId) {
+        return userRepository.getById(chatId);
+    }
+
+    public void deleteUserKid(Long chatId, Kid kid) {
+        User user = userRepository.getById(chatId);
+        UserKid userKid = userKidRepository.findByUserAndKid(user, kid);
+        userKidRepository.delete(userKid);
     }
 }

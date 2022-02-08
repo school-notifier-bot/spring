@@ -32,7 +32,7 @@ public class PercoService {
         log.info("Entries: {}", entries);
     }
 
-    public Staff getStaffById(Long ID) {
-        return staffRepository.findById(ID).orElse(null);
+    public Staff getStaffByTabelId(Long tabelId) {
+        return staffRepository.findByTabelID(tabelId).orElse(null);
     }
 }
