@@ -21,11 +21,17 @@ public class BotService {
     private final KidRepository kidRepository;
     private final UserKidRepository userKidRepository;
 
-    public void registration(Long chatId, String firstName, String lastName, String phoneNumber) {
+    public void registration(Long chatId, String firstName, String lastName) {
         User user = new User();
         user.setID(chatId);
         user.setFirstName(firstName);
         user.setLastName(lastName);
+        user.setPhoneNumber("");
+        userRepository.save(user);
+    }
+
+    public void setPhoneNumber(Long chatId, String phoneNumber) {
+        User user = userRepository.getById(chatId);
         user.setPhoneNumber(phoneNumber);
         userRepository.save(user);
     }
@@ -39,7 +45,7 @@ public class BotService {
         userKidRepository.deleteAll(userKidRepository.findByUser(userRepository.getById(chatID)));
     }
 
-    public Kid getKidByTabelId(Long tabelId) {
+    public Kid getKidByTabelId(String tabelId) {
         return kidRepository.findByTabelID(tabelId).orElse(null);
     }
 
@@ -61,17 +67,21 @@ public class BotService {
     }
 
     public List<UserKid> getUserKids(Long chatId) {
-        User user = userRepository.getById(chatId);
+        User user = userRepository.findByID(chatId).orElse(null);
         return userKidRepository.findByUser(user);
     }
 
     public User getUser(Long chatId) {
-        return userRepository.getById(chatId);
+        return userRepository.findByID(chatId).orElse(null);
     }
 
     public void deleteUserKid(Long chatId, Kid kid) {
         User user = userRepository.getById(chatId);
         UserKid userKid = userKidRepository.findByUserAndKid(user, kid);
         userKidRepository.delete(userKid);
+    }
+
+    public List<UserKid> getByKid(Kid kid) {
+        return userKidRepository.findByKid(kid);
     }
 }

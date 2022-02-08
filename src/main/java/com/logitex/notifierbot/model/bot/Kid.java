@@ -16,5 +16,5 @@ public class Kid {
     private String full_fio;
 
     @Column(name = "tabel_id")
-    private Long tabelID;
+    private String tabelID;
 }

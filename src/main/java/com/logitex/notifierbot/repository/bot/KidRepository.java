@@ -8,5 +8,5 @@ import java.util.Optional;
 
 @Repository
 public interface KidRepository extends JpaRepository<Kid, Long> {
-    Optional<Kid> findByTabelID(Long tabelId);
+    Optional<Kid> findByTabelID(String tabelId);
 }
