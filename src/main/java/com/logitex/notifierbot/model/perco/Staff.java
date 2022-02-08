@@ -19,5 +19,5 @@ public class Staff {
     private String fullFio;
 
     @Column(name = "TABEL_ID")
-    private Long tabelID;
+    private String tabelID;
 }

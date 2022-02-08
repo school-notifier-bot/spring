@@ -10,5 +10,5 @@ import java.util.Optional;
 @Repository
 public interface StaffRepository extends JpaRepository<Staff, Long> {
     List<Staff> findByFullFio(String fullFio);
-    Optional<Staff> findByTabelID(Long tabelId);
+    Optional<Staff> findByTabelID(String tabelId);
 }

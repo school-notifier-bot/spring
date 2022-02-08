@@ -1,13 +1,15 @@
 package com.logitex.notifierbot;
 
-import com.logitex.notifierbot.config.BotConfig;
 import com.logitex.notifierbot.model.bot.Kid;
 import com.logitex.notifierbot.model.bot.User;
 import com.logitex.notifierbot.model.bot.UserKid;
 import com.logitex.notifierbot.model.perco.Staff;
 import com.logitex.notifierbot.service.BotService;
 import com.logitex.notifierbot.service.PercoService;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
@@ -22,15 +24,19 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.Keyboard
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
-import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
 @Component
 @RequiredArgsConstructor
 public class Bot extends TelegramLongPollingBot {
-    private final BotConfig config = new BotConfig();
+    @Getter
+    @Value("${bot.username}")
+    private String botUsername;
+
+    @Getter
+    @Value("${bot.token}")
+    private String botToken;
     private final BotService botService;
     private final PercoService percoService;
 
@@ -51,6 +57,7 @@ public class Bot extends TelegramLongPollingBot {
     private String pleaseUserRegistrationButton = "Пожалуйста используйте кнопку \n'" + numberRequestInlineButton + "'";
     private String notFound = "Не найдено совпадений";
     private String found = "Ребенок найден!";
+    private String continueText = "Продолжение работы...";
 
     @Override
     public void onUpdateReceived(Update update) {
@@ -64,10 +71,14 @@ public class Bot extends TelegramLongPollingBot {
             if (update.getMessage().getContact() != null) {
                 if (update.getMessage().getContact().getUserId() != null && update.getMessage().getContact().getUserId().equals(update.getMessage().getFrom().getId())) {
                     String phoneNumber = update.getMessage().getContact().getPhoneNumber();
-                    String firstName = update.getMessage().getContact().getFirstName();
-                    String lastName = update.getMessage().getContact().getLastName();
-                    botService.registration(chatID, firstName, lastName, phoneNumber);
+                    botService.setPhoneNumber(chatID, phoneNumber);
                     sm.setText(welcome);
+                    sm.setReplyMarkup(getReplyKeyboardByUser(chatID));
+                    try {
+                        execute(sm);
+                    } catch (TelegramApiException e) {
+                        e.printStackTrace();
+                    }
                 } else {
                     sm.setText(pleaseUserRegistrationButton);
                     try {
@@ -78,14 +89,15 @@ public class Bot extends TelegramLongPollingBot {
                 }
             } else if (update.getMessage().getReplyToMessage() != null) {
                 String message = update.getMessage().getText();
+                String tabelId = StringUtils.leftPad(message, 20);
                 String replyMessage = update.getMessage().getReplyToMessage().getText();
-                Long tabelId = Long.parseLong(message);
                 if (replyMessage.equals(enterKidTabelIDResponse)) {
                     Kid kid = botService.getKidByTabelId(tabelId);
                     if (kid == null) {
                         Staff staff = percoService.getStaffByTabelId(tabelId);
                         if (staff != null) {
                             botService.insertKid(staff);
+                            kid = botService.getKidByTabelId(tabelId);
                         }
                     }
 
@@ -94,6 +106,11 @@ public class Bot extends TelegramLongPollingBot {
                         botService.insertUserKid(chatID, kid.getID());
                     } else {
                         sm.setText(notFound);
+                    }
+                    try {
+                        execute(sm);
+                    } catch (TelegramApiException e) {
+                        e.printStackTrace();
                     }
                 }
             } else if (update.getMessage().getText() != null) {
@@ -121,8 +138,7 @@ public class Bot extends TelegramLongPollingBot {
                         }
                     }
                 } else if (messageText.equals("/start")) {
-                    registerInDB(update);
-                    return;
+                    registerInDB(update, sm);
                 } else {
                     sm.setText("Неизвестная команда");
                 }
@@ -137,17 +153,11 @@ public class Bot extends TelegramLongPollingBot {
                 if (data.contains(delete)) {
                     deleteMessage(chatID, messageID);
                     data = data.replace(delete, "");
-                    Kid kid = botService.getKidByTabelId(Long.parseLong(data));
+                    Kid kid = botService.getKidByTabelId(data);
                     botService.deleteUserKid(chatID, kid);
                     sm.setText(kidDeleted);
                 }
             }
-        }
-        sm.setReplyMarkup(getReplyKeyboardByUser(chatID));
-        try {
-            execute(sm);
-        } catch (TelegramApiException e) {
-            e.printStackTrace();
         }
     }
 
@@ -175,15 +185,13 @@ public class Bot extends TelegramLongPollingBot {
         ReplyKeyboardMarkup markup = new ReplyKeyboardMarkup();
         List<KeyboardRow> keyboard = new ArrayList<>();
 
-        if (userKids.size() == 0) return new ReplyKeyboardMarkup();
-
-        KeyboardRow row1 = new KeyboardRow();
-        KeyboardButton keyboardButton = new KeyboardButton();
-        keyboardButton.setText(enterKidTabelID);
-        row1.add(keyboardButton);
-        keyboard.add(row1);
-
-        if (userKids.size() > 0) {
+        if (userKids.size() == 0) {
+            KeyboardRow row1 = new KeyboardRow();
+            KeyboardButton keyboardButton = new KeyboardButton();
+            keyboardButton.setText(enterKidTabelID);
+            row1.add(keyboardButton);
+            keyboard.add(row1);
+        } else {
             KeyboardRow row2 = new KeyboardRow();
             KeyboardButton keyboardButton1 = new KeyboardButton();
             keyboardButton1.setText(deleteKid);
@@ -210,16 +218,14 @@ public class Bot extends TelegramLongPollingBot {
         }
     }
 
-    private void registerInDB(Update update) {
-        SendMessage sm = new SendMessage();
+    private void registerInDB(Update update, SendMessage sm) {
 
         Long chatID = update.getMessage().getChatId();
         String firstName = update.getMessage().getFrom().getFirstName();
         String lastName = update.getMessage().getFrom().getLastName();
-        String phoneNumber = update.getMessage().getContact().getPhoneNumber();
 
         if (botService.getUser(chatID) == null) {
-            botService.registration(chatID, firstName, lastName, phoneNumber);
+            botService.registration(chatID, firstName, lastName);
         }
         sm.setChatId(String.valueOf(chatID));
         sm.setText(numberRequest);
@@ -262,15 +268,5 @@ public class Bot extends TelegramLongPollingBot {
         markup.setKeyboard(keyboard);
 
         return markup;
-    }
-
-    @Override
-    public String getBotUsername() {
-        return config.getBotUsername();
-    }
-
-    @Override
-    public String getBotToken() {
-        return config.getBotToken();
     }
 }

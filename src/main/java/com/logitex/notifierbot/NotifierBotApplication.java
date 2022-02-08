@@ -42,8 +42,8 @@ public class NotifierBotApplication implements CommandLineRunner {
                         bot.sendMessageToUser(userKid.getUser(), userKid.getKid(), passType, time);
                     }
                 }
-                Thread.sleep(1000*60);
             }
+            Thread.sleep(1000*60);
         }
     }
 }

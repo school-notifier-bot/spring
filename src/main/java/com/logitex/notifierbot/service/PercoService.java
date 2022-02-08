@@ -7,12 +7,14 @@ import com.logitex.notifierbot.repository.perco.TabelIntermediadateRepository;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.sql.Date;
 import java.sql.Time;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -22,7 +24,7 @@ public class PercoService {
     private final TabelIntermediadateRepository tabelIntermediadateRepository;
     private final StaffRepository staffRepository;
     @Getter
-    private List<TabelIntermediadate> entries;
+    private List<TabelIntermediadate> entries = new ArrayList<>();
 
     @Scheduled(fixedRate = 1000 * 60)
     public void updateData() {
@@ -32,7 +34,7 @@ public class PercoService {
         log.info("Entries: {}", entries);
     }
 
-    public Staff getStaffByTabelId(Long tabelId) {
+    public Staff getStaffByTabelId(String tabelId) {
         return staffRepository.findByTabelID(tabelId).orElse(null);
     }
 
