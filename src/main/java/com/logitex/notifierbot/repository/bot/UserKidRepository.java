@@ -9,5 +9,6 @@ import java.util.List;
 
 public interface UserKidRepository extends JpaRepository<UserKid, Long> {
     List<UserKid> findByUser(User user);
+    List<UserKid> findByKid(Kid kid);
     UserKid findByUserAndKid(User user, Kid kid);
 }

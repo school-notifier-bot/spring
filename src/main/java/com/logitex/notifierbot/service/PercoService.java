@@ -35,4 +35,12 @@ public class PercoService {
     public Staff getStaffByTabelId(Long tabelId) {
         return staffRepository.findByTabelID(tabelId).orElse(null);
     }
+
+    public Staff getStaffById(Long staffId) {
+        return staffRepository.findById(staffId).orElse(null);
+    }
+
+    public String getTime(TabelIntermediadate tabelIntermediadate) {
+        return tabelIntermediadate.getDate().toString() + "  " + tabelIntermediadate.getTime().toString();
+    }
 }

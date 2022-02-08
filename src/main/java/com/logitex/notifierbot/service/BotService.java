@@ -74,4 +74,8 @@ public class BotService {
         UserKid userKid = userKidRepository.findByUserAndKid(user, kid);
         userKidRepository.delete(userKid);
     }
+
+    public List<UserKid> getByKid(Kid kid) {
+        return userKidRepository.findByKid(kid);
+    }
 }

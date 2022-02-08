@@ -2,6 +2,7 @@ package com.logitex.notifierbot;
 
 import com.logitex.notifierbot.config.BotConfig;
 import com.logitex.notifierbot.model.bot.Kid;
+import com.logitex.notifierbot.model.bot.User;
 import com.logitex.notifierbot.model.bot.UserKid;
 import com.logitex.notifierbot.model.perco.Staff;
 import com.logitex.notifierbot.service.BotService;
@@ -21,6 +22,8 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.Keyboard
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -51,126 +54,140 @@ public class Bot extends TelegramLongPollingBot {
 
     @Override
     public void onUpdateReceived(Update update) {
-        try {
-            SendMessage sm = new SendMessage();
-            Long chatID = null;
+        SendMessage sm = new SendMessage();
+        Long chatID = null;
 
-            if (update.getMessage() != null) {
-                chatID = update.getMessage().getChatId();
+        if (update.getMessage() != null) {
+            chatID = update.getMessage().getChatId();
+            sm.setChatId(String.valueOf(chatID));
+
+            if (update.getMessage().getContact() != null) {
+                if (update.getMessage().getContact().getUserId() != null && update.getMessage().getContact().getUserId().equals(update.getMessage().getFrom().getId())) {
+                    String phoneNumber = update.getMessage().getContact().getPhoneNumber();
+                    String firstName = update.getMessage().getContact().getFirstName();
+                    String lastName = update.getMessage().getContact().getLastName();
+                    botService.registration(chatID, firstName, lastName, phoneNumber);
+                    sm.setText(welcome);
+                } else {
+                    sm.setText(pleaseUserRegistrationButton);
+                    try {
+                        execute(sm);
+                    } catch (TelegramApiException e) {
+                        e.printStackTrace();
+                    }
+                }
+            } else if (update.getMessage().getReplyToMessage() != null) {
+                String message = update.getMessage().getText();
+                String replyMessage = update.getMessage().getReplyToMessage().getText();
+                Long tabelId = Long.parseLong(message);
+                if (replyMessage.equals(enterKidTabelIDResponse)) {
+                    Kid kid = botService.getKidByTabelId(tabelId);
+                    if (kid == null) {
+                        Staff staff = percoService.getStaffByTabelId(tabelId);
+                        if (staff != null) {
+                            botService.insertKid(staff);
+                        }
+                    }
+
+                    if (kid != null) {
+                        sm.setText(found + "\n" + kid.getFull_fio());
+                        botService.insertUserKid(chatID, kid.getID());
+                    } else {
+                        sm.setText(notFound);
+                    }
+                }
+            } else if (update.getMessage().getText() != null) {
+                String messageText = update.getMessage().getText();
+                if (messageText.equals(enterKidTabelID)) {
+                    sm.setText(enterKidTabelIDResponse);
+                    sm.setReplyMarkup(new ForceReplyKeyboard());
+                    try {
+                        sendApiMethod(sm);
+                    } catch (TelegramApiException e) {
+                        e.printStackTrace();
+                    }
+                } else if (messageText.equals(deleteKid)) {
+                    List<UserKid> userKids = botService.getUserKids(chatID);
+                    for (UserKid userKid : userKids) {
+                        String fio = userKid.getKid().getFull_fio();
+                        SendMessage sendUserKids = new SendMessage();
+                        sendUserKids.setChatId(String.valueOf(chatID));
+                        sendUserKids.setText(fio);
+                        sendUserKids.setReplyMarkup(oneButtonInlineMarkup(cancel, delete + userKid.getKid().getTabelID()));
+                        try {
+                            sendApiMethod(sendUserKids);
+                        } catch (TelegramApiException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                } else if (messageText.equals("/start")) {
+                    registerInDB(update);
+                    return;
+                } else {
+                    sm.setText("Неизвестная команда");
+                }
+            }
+        } else if (update.getCallbackQuery() != null) {
+            chatID = update.getCallbackQuery().getMessage().getChat().getId();
+            Integer messageID = update.getCallbackQuery().getMessage().getMessageId();
+            if (update.getCallbackQuery().getData() != null) {
+                String data = update.getCallbackQuery().getData();
                 sm.setChatId(String.valueOf(chatID));
 
-                if (update.getMessage().getContact() != null) {
-                    if (update.getMessage().getContact().getUserId() != null
-                            && update.getMessage().getContact().getUserId().equals(update.getMessage().getFrom().getId())) {
-                        String phoneNumber = update.getMessage().getContact().getPhoneNumber();
-                        String firstName = update.getMessage().getContact().getFirstName();
-                        String lastName = update.getMessage().getContact().getLastName();
-                        botService.registration(chatID, firstName, lastName, phoneNumber);
-                        sm.setText(welcome);
-                    } else {
-                        sm.setText(pleaseUserRegistrationButton);
-                        try {
-                            execute(sm);
-                        } catch (TelegramApiException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                }
-                else if (update.getMessage().getReplyToMessage() != null) {
-                    String message = update.getMessage().getText();
-                    String replyMessage = update.getMessage().getReplyToMessage().getText();
-                    Long tabelId = Long.parseLong(message);
-                    if (replyMessage.equals(enterKidTabelIDResponse)) {
-                        Kid kid = botService.getKidByTabelId(tabelId);
-                        if (kid == null) {
-                            Staff staff = percoService.getStaffByTabelId(tabelId);
-                            if (staff != null) {
-                                botService.insertKid(staff);
-                            }
-                        }
-
-                        if (kid != null) {
-                            sm.setText(found + "\n" + kid.getFull_fio());
-                            botService.insertUserKid(chatID, kid.getID());
-                        } else {
-                            sm.setText(notFound);
-                        }
-                    }
-                }
-                else if (update.getMessage().getText() != null) {
-                    String messageText = update.getMessage().getText();
-                    if (messageText.equals(enterKidTabelID)) {
-                        sm.setText(enterKidTabelIDResponse);
-                        sm.setReplyMarkup(new ForceReplyKeyboard());
-                        try {
-                            sendApiMethod(sm);
-                        } catch (TelegramApiException e) {
-                            e.printStackTrace();
-                        }
-                    } else if (messageText.equals(deleteKid)) {
-                        List<UserKid> userKids = botService.getUserKids(chatID);
-                        for (UserKid userKid : userKids) {
-                            String fio = userKid.getKid().getFull_fio();
-                            SendMessage sendUserKids = new SendMessage();
-                            sendUserKids.setChatId(String.valueOf(chatID));
-                            sendUserKids.setText(fio);
-                            sendUserKids.setReplyMarkup(oneButtonInlineMarkup(cancel, delete + userKid.getKid().getTabelID()));
-                            try {
-                                sendApiMethod(sendUserKids);
-                            } catch (TelegramApiException e) {
-                                e.printStackTrace();
-                            }
-                        }
-                    } else if (messageText.equals("/start")) {
-                        registerInDB(update);
-                        return;
-                    } else {
-                        sm.setText("Неизвестная команда");
-                    }
+                if (data.contains(delete)) {
+                    deleteMessage(chatID, messageID);
+                    data = data.replace(delete, "");
+                    Kid kid = botService.getKidByTabelId(Long.parseLong(data));
+                    botService.deleteUserKid(chatID, kid);
+                    sm.setText(kidDeleted);
                 }
             }
-            else if (update.getCallbackQuery() != null) {
-                chatID = update.getCallbackQuery().getMessage().getChat().getId();
-                Integer messageID = update.getCallbackQuery().getMessage().getMessageId();
-                if (update.getCallbackQuery().getData() != null) {
-                    String data = update.getCallbackQuery().getData();
-                    sm.setChatId(String.valueOf(chatID));
+        }
+        sm.setReplyMarkup(getReplyKeyboardByUser(chatID));
+        try {
+            execute(sm);
+        } catch (TelegramApiException e) {
+            e.printStackTrace();
+        }
+    }
 
-                    if (data.contains(delete)) {
-                        deleteMessage(chatID, messageID);
-                        data = data.replace(delete, "");
-                        Kid kid = botService.getKidByTabelId(Long.parseLong(data));
-                        botService.deleteUserKid(chatID, kid);
-                        sm.setText(kidDeleted);
-                    }
-                }
-            }
-            sm.setReplyMarkup(getReplyKeyboardByUser(chatID));
+    public void sendMessageToUser(User user, Kid kid, Integer passType, String time) {
+        String type;
 
-            try {
-                sendMessage(sendMessage);
-            } catch (TelegramApiException e) {
-                e.printStackTrace();
-            }
-        } catch (Exception e) {
+        if (passType == 1) {
+            type = "Зафиксирован вход в школу";
+        } else {
+            type = "Зафиксирован выход из школы";
+        }
 
+        SendMessage sm = new SendMessage();
+        sm.setChatId(String.valueOf(user.getID()));
+        sm.setText(kid.getTabelID() + "\n" + kid.getFull_fio() + "\n" + type + "\n" + time);
+        try {
+            execute(sm);
+        } catch (TelegramApiException e) {
+            e.printStackTrace();
         }
     }
 
     private ReplyKeyboard getReplyKeyboardByUser(Long chatID) {
+        List<UserKid> userKids = botService.getUserKids(chatID);
         ReplyKeyboardMarkup markup = new ReplyKeyboardMarkup();
         List<KeyboardRow> keyboard = new ArrayList<>();
+
+        if (userKids.size() == 0) return new ReplyKeyboardMarkup();
+
         KeyboardRow row1 = new KeyboardRow();
         KeyboardButton keyboardButton = new KeyboardButton();
         keyboardButton.setText(enterKidTabelID);
         row1.add(keyboardButton);
         keyboard.add(row1);
 
-        if (group.equals(parent)) {
+        if (userKids.size() > 0) {
             KeyboardRow row2 = new KeyboardRow();
-
-            row2.add(new KeyboardButton().setText(deleteKid));
-
+            KeyboardButton keyboardButton1 = new KeyboardButton();
+            keyboardButton1.setText(deleteKid);
+            row2.add(keyboardButton1);
             keyboard.add(row2);
         }
 
