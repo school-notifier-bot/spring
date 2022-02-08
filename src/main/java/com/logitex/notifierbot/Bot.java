@@ -25,6 +25,7 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.Keyboard
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 @Component
@@ -40,24 +41,27 @@ public class Bot extends TelegramLongPollingBot {
     private final BotService botService;
     private final PercoService percoService;
 
+    private String startCommand = "/start";
+
     private String deleteEmoji = "❌";
-    private String addEmohi = "\uD83D\uDCDD";
     private String checkMarkEmoji = "✔";
+    private String addEmohi = "\uD83D\uDCDD";
 
     private String numberRequestInlineButton = "Зарегистрироваться";
     private String enterKidTabelID = addEmohi + " Ввести табельный номер ребенка " + addEmohi;
     private String deleteKid = deleteEmoji + " Отменить привязку " + deleteEmoji;
     private String kidDeleted = "Привязка отменена " + checkMarkEmoji;
     private String cancel = "Отменить";
-    private String delete = "delete";
+    private String delete = "Удалить";
 
     private String enterKidTabelIDResponse = "Пожалуйста введите табельный номер вашего ребенка";
     private String numberRequest = "Для продолжения работы нужна регистрация";
-    private String welcome = "Регистрация завершена! Добро пожаловать!\nИспользуйте кнопку : \n'" + enterKidTabelID + "'\n для продолжения работы.";
+    private String welcome = "Регистрация завершена! Добро пожаловать!";
     private String pleaseUserRegistrationButton = "Пожалуйста используйте кнопку \n'" + numberRequestInlineButton + "'";
     private String notFound = "Не найдено совпадений";
     private String found = "Ребенок найден!";
-    private String continueText = "Продолжение работы...";
+    private String subscribing = "Начинаем наблюдение...";
+    private String emptyList = "Список наблюдаемых детей пуст.";
 
     @Override
     public void onUpdateReceived(Update update) {
@@ -73,7 +77,7 @@ public class Bot extends TelegramLongPollingBot {
                     String phoneNumber = update.getMessage().getContact().getPhoneNumber();
                     botService.setPhoneNumber(chatID, phoneNumber);
                     sm.setText(welcome);
-                    sm.setReplyMarkup(getReplyKeyboardByUser(chatID));
+                    sm.setReplyMarkup(getReplyKeyboardByUser());
                     try {
                         execute(sm);
                     } catch (TelegramApiException e) {
@@ -100,14 +104,14 @@ public class Bot extends TelegramLongPollingBot {
                             kid = botService.getKidByTabelId(tabelId);
                         }
                     }
-
                     if (kid != null) {
-                        sm.setText(found + "\n" + kid.getFull_fio());
+                        sm.setText(found + "\n" + kid.getFull_fio() + "\n" + subscribing);
                         botService.insertUserKid(chatID, kid.getID());
                     } else {
                         sm.setText(notFound);
                     }
                     try {
+                        sm.setReplyMarkup(getReplyKeyboardByUser());
                         execute(sm);
                     } catch (TelegramApiException e) {
                         e.printStackTrace();
@@ -115,7 +119,9 @@ public class Bot extends TelegramLongPollingBot {
                 }
             } else if (update.getMessage().getText() != null) {
                 String messageText = update.getMessage().getText();
-                if (messageText.equals(enterKidTabelID)) {
+                if (messageText.equals(startCommand)) {
+                    registerInDB(update, sm);
+                } else if (messageText.equals(enterKidTabelID)) {
                     sm.setText(enterKidTabelIDResponse);
                     sm.setReplyMarkup(new ForceReplyKeyboard());
                     try {
@@ -125,6 +131,15 @@ public class Bot extends TelegramLongPollingBot {
                     }
                 } else if (messageText.equals(deleteKid)) {
                     List<UserKid> userKids = botService.getUserKids(chatID);
+                    if (userKids.isEmpty()) {
+                        sm.setText(emptyList);
+                        try {
+                            execute(sm);
+                        } catch (TelegramApiException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    else
                     for (UserKid userKid : userKids) {
                         String fio = userKid.getKid().getFull_fio();
                         SendMessage sendUserKids = new SendMessage();
@@ -137,10 +152,13 @@ public class Bot extends TelegramLongPollingBot {
                             e.printStackTrace();
                         }
                     }
-                } else if (messageText.equals("/start")) {
-                    registerInDB(update, sm);
                 } else {
                     sm.setText("Неизвестная команда");
+                    try {
+                        execute(sm);
+                    } catch (TelegramApiException e) {
+                        e.printStackTrace();
+                    }
                 }
             }
         } else if (update.getCallbackQuery() != null) {
@@ -180,24 +198,14 @@ public class Bot extends TelegramLongPollingBot {
         }
     }
 
-    private ReplyKeyboard getReplyKeyboardByUser(Long chatID) {
-        List<UserKid> userKids = botService.getUserKids(chatID);
+    private ReplyKeyboard getReplyKeyboardByUser() {
         ReplyKeyboardMarkup markup = new ReplyKeyboardMarkup();
         List<KeyboardRow> keyboard = new ArrayList<>();
 
-        if (userKids.size() == 0) {
-            KeyboardRow row1 = new KeyboardRow();
-            KeyboardButton keyboardButton = new KeyboardButton();
-            keyboardButton.setText(enterKidTabelID);
-            row1.add(keyboardButton);
-            keyboard.add(row1);
-        } else {
-            KeyboardRow row2 = new KeyboardRow();
-            KeyboardButton keyboardButton1 = new KeyboardButton();
-            keyboardButton1.setText(deleteKid);
-            row2.add(keyboardButton1);
-            keyboard.add(row2);
-        }
+        KeyboardRow row1 = new KeyboardRow();
+        row1.add(new KeyboardButton(enterKidTabelID));
+        row1.add(new KeyboardButton(deleteKid));
+        keyboard.add(row1);
 
         markup.setKeyboard(keyboard);
         markup.setResizeKeyboard(true);

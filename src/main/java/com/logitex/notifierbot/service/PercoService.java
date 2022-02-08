@@ -31,7 +31,6 @@ public class PercoService {
         Date date = Date.valueOf(LocalDate.now());
         Time time = new Time(System.currentTimeMillis() - 1000 * 60);
         entries = tabelIntermediadateRepository.findByDateAndTimeAfter(date, time);
-        log.info("Entries: {}", entries);
     }
 
     public Staff getStaffByTabelId(String tabelId) {
