@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.methods.send.SendVoice;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ForceReplyKeyboard;
@@ -42,6 +43,8 @@ public class Bot extends TelegramLongPollingBot {
     private final PercoService percoService;
 
     private String startCommand = "/start";
+    private String subscribeCommand = "/subscribe";
+    private String unsubscribeCommand = "/unsubscribe";
 
     private String deleteEmoji = "❌";
     private String checkMarkEmoji = "✔";
@@ -53,15 +56,19 @@ public class Bot extends TelegramLongPollingBot {
     private String kidDeleted = "Привязка отменена " + checkMarkEmoji;
     private String cancel = "Отменить";
     private String delete = "Удалить";
+    private String unknown = "Неизвестная команда\nПопробуйте команды:\n" + subscribeCommand + "\n" + unsubscribeCommand;
 
     private String enterKidTabelIDResponse = "Пожалуйста введите табельный номер вашего ребенка";
     private String numberRequest = "Для продолжения работы нужна регистрация";
     private String welcome = "Регистрация завершена! Добро пожаловать!";
-    private String pleaseUserRegistrationButton = "Пожалуйста используйте кнопку \n'" + numberRequestInlineButton + "'";
+    private String pleaseUserRegistrationButton = "Пожалуйста зарегистрируйтесь";
     private String notFound = "Не найдено совпадений";
     private String found = "Ребенок найден!";
+    private String alreadySubscribing = "Ребенок уже под вашим наблюдением";
+    private String alreadyRegistered = "Вы уже зарегистрированы";
     private String subscribing = "Начинаем наблюдение...";
-    private String emptyList = "Список наблюдаемых детей пуст.";
+    private String emptyList = "Список наблюдаемых детей пуст";
+
 
     @Override
     public void onUpdateReceived(Update update) {
@@ -77,41 +84,22 @@ public class Bot extends TelegramLongPollingBot {
                     String phoneNumber = update.getMessage().getContact().getPhoneNumber();
                     botService.setPhoneNumber(chatID, phoneNumber);
                     sm.setText(welcome);
-                    sm.setReplyMarkup(getReplyKeyboardByUser());
+//                    sm.setReplyMarkup(getReplyKeyboardByUser());
                     try {
                         execute(sm);
+                    } catch (TelegramApiException e) {
+                        e.printStackTrace();
+                    }
+                    sm.setText(enterKidTabelIDResponse);
+                    sm.setReplyMarkup(new ForceReplyKeyboard());
+                    try {
+                        sendApiMethod(sm);
                     } catch (TelegramApiException e) {
                         e.printStackTrace();
                     }
                 } else {
-                    sm.setText(pleaseUserRegistrationButton);
+                    sm.setText(pleaseUserRegistrationButton + "\n" + startCommand);
                     try {
-                        execute(sm);
-                    } catch (TelegramApiException e) {
-                        e.printStackTrace();
-                    }
-                }
-            } else if (update.getMessage().getReplyToMessage() != null) {
-                String message = update.getMessage().getText();
-                String tabelId = StringUtils.leftPad(message, 20);
-                String replyMessage = update.getMessage().getReplyToMessage().getText();
-                if (replyMessage.equals(enterKidTabelIDResponse)) {
-                    Kid kid = botService.getKidByTabelId(tabelId);
-                    if (kid == null) {
-                        Staff staff = percoService.getStaffByTabelId(tabelId);
-                        if (staff != null) {
-                            botService.insertKid(staff);
-                            kid = botService.getKidByTabelId(tabelId);
-                        }
-                    }
-                    if (kid != null) {
-                        sm.setText(found + "\n" + kid.getFull_fio() + "\n" + subscribing);
-                        botService.insertUserKid(chatID, kid.getID());
-                    } else {
-                        sm.setText(notFound);
-                    }
-                    try {
-                        sm.setReplyMarkup(getReplyKeyboardByUser());
                         execute(sm);
                     } catch (TelegramApiException e) {
                         e.printStackTrace();
@@ -121,15 +109,24 @@ public class Bot extends TelegramLongPollingBot {
                 String messageText = update.getMessage().getText();
                 if (messageText.equals(startCommand)) {
                     registerInDB(update, sm);
-                } else if (messageText.equals(enterKidTabelID)) {
-                    sm.setText(enterKidTabelIDResponse);
-                    sm.setReplyMarkup(new ForceReplyKeyboard());
-                    try {
-                        sendApiMethod(sm);
-                    } catch (TelegramApiException e) {
-                        e.printStackTrace();
+                } else if (messageText.equals(enterKidTabelID) || messageText.equals(subscribeCommand)) {
+                    if (botService.isRegistered(chatID)) {
+                        sm.setText(enterKidTabelIDResponse);
+                        sm.setReplyMarkup(new ForceReplyKeyboard());
+                        try {
+                            sendApiMethod(sm);
+                        } catch (TelegramApiException e) {
+                            e.printStackTrace();
+                        }
+                    } else {
+                        sm.setText(pleaseUserRegistrationButton + "\n" + startCommand);
+                        try {
+                            execute(sm);
+                        } catch (TelegramApiException e) {
+                            e.printStackTrace();
+                        }
                     }
-                } else if (messageText.equals(deleteKid)) {
+                } else if (messageText.equals(deleteKid) || messageText.equals(unsubscribeCommand)) {
                     List<UserKid> userKids = botService.getUserKids(chatID);
                     if (userKids.isEmpty()) {
                         sm.setText(emptyList);
@@ -138,22 +135,61 @@ public class Bot extends TelegramLongPollingBot {
                         } catch (TelegramApiException e) {
                             e.printStackTrace();
                         }
-                    }
-                    else
-                    for (UserKid userKid : userKids) {
-                        String fio = userKid.getKid().getFull_fio();
-                        SendMessage sendUserKids = new SendMessage();
-                        sendUserKids.setChatId(String.valueOf(chatID));
-                        sendUserKids.setText(fio);
-                        sendUserKids.setReplyMarkup(oneButtonInlineMarkup(cancel, delete + userKid.getKid().getTabelID()));
-                        try {
-                            sendApiMethod(sendUserKids);
-                        } catch (TelegramApiException e) {
-                            e.printStackTrace();
+                    } else
+                        for (UserKid userKid : userKids) {
+                            String fio = userKid.getKid().getFull_fio();
+                            SendMessage sendUserKids = new SendMessage();
+                            sendUserKids.setChatId(String.valueOf(chatID));
+                            sendUserKids.setText(fio);
+                            sendUserKids.setReplyMarkup(oneButtonInlineMarkup(cancel, delete + userKid.getKid().getTabelID()));
+                            try {
+                                sendApiMethod(sendUserKids);
+                            } catch (TelegramApiException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                } else if (update.getMessage().getReplyToMessage() != null) {
+                    String message = update.getMessage().getText();
+                    String tabelId = StringUtils.leftPad(message.substring(0, 20), 20);
+                    String replyMessage = update.getMessage().getReplyToMessage().getText();
+                    if (replyMessage.equals(enterKidTabelIDResponse)) {
+                        Kid kid = botService.getKidByTabelId(tabelId);
+                        if (kid == null) {
+                            Staff staff = percoService.getStaffByTabelId(tabelId);
+                            if (staff != null) {
+                                botService.insertKid(staff);
+                                kid = botService.getKidByTabelId(tabelId);
+                            }
+                        }
+                        if (kid != null) {
+                            if (botService.getConnection(chatID, kid)) sm.setText(alreadySubscribing);
+                            else {
+                                sm.setText(found + "\n" + kid.getFull_fio() + "\n" + subscribing);
+                                botService.insertUserKid(chatID, kid.getID());
+                            }
+                            try {
+                                execute(sm);
+                            } catch (TelegramApiException e) {
+                                e.printStackTrace();
+                            }
+                        } else {
+                            sm.setText(notFound);
+                            try {
+                                execute(sm);
+                            } catch (TelegramApiException e) {
+                                e.printStackTrace();
+                            }
+                            sm.setText(enterKidTabelIDResponse);
+                            sm.setReplyMarkup(new ForceReplyKeyboard());
+                            try {
+                                sendApiMethod(sm);
+                            } catch (TelegramApiException e) {
+                                e.printStackTrace();
+                            }
                         }
                     }
                 } else {
-                    sm.setText("Неизвестная команда");
+                    sm.setText(unknown);
                     try {
                         execute(sm);
                     } catch (TelegramApiException e) {
@@ -167,13 +203,17 @@ public class Bot extends TelegramLongPollingBot {
             if (update.getCallbackQuery().getData() != null) {
                 String data = update.getCallbackQuery().getData();
                 sm.setChatId(String.valueOf(chatID));
-
                 if (data.contains(delete)) {
                     deleteMessage(chatID, messageID);
                     data = data.replace(delete, "");
                     Kid kid = botService.getKidByTabelId(data);
                     botService.deleteUserKid(chatID, kid);
-                    sm.setText(kidDeleted);
+                    sm.setText(kid.getFull_fio() + "\n" + kidDeleted);
+                    try {
+                        execute(sm);
+                    } catch (TelegramApiException e) {
+                        e.printStackTrace();
+                    }
                 }
             }
         }
@@ -227,7 +267,6 @@ public class Bot extends TelegramLongPollingBot {
     }
 
     private void registerInDB(Update update, SendMessage sm) {
-
         Long chatID = update.getMessage().getChatId();
         String firstName = update.getMessage().getFrom().getFirstName();
         String lastName = update.getMessage().getFrom().getLastName();
@@ -235,25 +274,28 @@ public class Bot extends TelegramLongPollingBot {
         if (botService.getUser(chatID) == null) {
             botService.registration(chatID, firstName, lastName);
         }
-        sm.setChatId(String.valueOf(chatID));
-        sm.setText(numberRequest);
+        if (!botService.isRegistered(chatID)) {
+            sm.setChatId(String.valueOf(chatID));
+            sm.setText(numberRequest);
 
-        ReplyKeyboardMarkup markup = new ReplyKeyboardMarkup();
-        List<KeyboardRow> keyboard = new ArrayList<>();
+            ReplyKeyboardMarkup markup = new ReplyKeyboardMarkup();
+            List<KeyboardRow> keyboard = new ArrayList<>();
 
-        KeyboardRow row = new KeyboardRow();
-        KeyboardButton keyboardButton = new KeyboardButton();
-        keyboardButton.setText(numberRequestInlineButton);
-        keyboardButton.setRequestContact(true);
-        row.add(keyboardButton);
+            KeyboardRow row = new KeyboardRow();
+            KeyboardButton keyboardButton = new KeyboardButton();
+            keyboardButton.setText(numberRequestInlineButton);
+            keyboardButton.setRequestContact(true);
+            row.add(keyboardButton);
 
-        keyboard.add(row);
+            keyboard.add(row);
 
-        markup.setKeyboard(keyboard);
-        markup.setResizeKeyboard(true);
+            markup.setKeyboard(keyboard);
+            markup.setResizeKeyboard(true);
 
-        sm.setReplyMarkup(markup);
-
+            sm.setReplyMarkup(markup);
+        } else {
+            sm.setText(alreadyRegistered);
+        }
         try {
             execute(sm);
         } catch (TelegramApiException e) {

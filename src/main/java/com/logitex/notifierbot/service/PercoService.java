@@ -34,7 +34,12 @@ public class PercoService {
     }
 
     public Staff getStaffByTabelId(String tabelId) {
-        return staffRepository.findByTabelID(tabelId).orElse(null);
+        List<Staff> staffList = staffRepository.findByTabelID(tabelId);
+        if (staffList.size() == 1) {
+            return staffList.get(0);
+        } else {
+            return null;
+        }
     }
 
     public Staff getStaffById(Long staffId) {

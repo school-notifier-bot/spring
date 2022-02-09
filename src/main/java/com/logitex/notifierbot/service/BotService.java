@@ -66,9 +66,19 @@ public class BotService {
         userKidRepository.save(userKid);
     }
 
+    public boolean isRegistered(Long chatId) {
+        User user = userRepository.findByID(chatId).orElse(null);
+        if (user != null) return user.getPhoneNumber().length() > 0;
+        return false;
+    }
+
     public List<UserKid> getUserKids(Long chatId) {
         User user = userRepository.findByID(chatId).orElse(null);
         return userKidRepository.findByUser(user);
+    }
+
+    public boolean getConnection(Long chatId, Kid kid) {
+        return userKidRepository.findByUserAndKid(userRepository.findByID(chatId).orElse(null), kid) != null;
     }
 
     public User getUser(Long chatId) {
