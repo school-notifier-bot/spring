@@ -50,24 +50,24 @@ public class Bot extends TelegramLongPollingBot {
     private String checkMarkEmoji = "✔";
     private String addEmohi = "\uD83D\uDCDD";
 
-    private String numberRequestInlineButton = "Зарегистрироваться";
-    private String enterKidTabelID = addEmohi + " Ввести табельный номер ребенка " + addEmohi;
-    private String deleteKid = deleteEmoji + " Отменить привязку " + deleteEmoji;
-    private String kidDeleted = "Привязка отменена " + checkMarkEmoji;
-    private String cancel = "Отменить";
-    private String delete = "Удалить";
-    private String unknown = "Неизвестная команда\nПопробуйте команды:\n" + subscribeCommand + "\n" + unsubscribeCommand;
+    private String numberRequestInlineButton = "Тіркелу\nЗарегистрироваться";
+    private String enterKidTabelID = addEmohi + " Баланың табельдік нөмірін енгізу " + addEmohi + "\n"  + addEmohi + " Ввести табельный номер ребенка " + addEmohi;
+    private String deleteKid = deleteEmoji + " Байланысты болдырмау " + deleteEmoji + deleteEmoji + " Отменить привязку " + deleteEmoji;
+    private String kidDeleted = "Байланыс жойылды " + checkMarkEmoji + "Привязка отменена " + checkMarkEmoji;
+    private String cancel = "Болдырмау\n/ Отменить";
+    private String delete = "Өшіру\n/ Удалить";
+    private String unknown = "Белгісіз команда\nПәрмендерді қолданып көріңіз:\n" + subscribeCommand + "\n" + unsubscribeCommand + "\n" + "Неизвестная команда\nПопробуйте команды:\n" + subscribeCommand + "\n" + unsubscribeCommand;
 
-    private String enterKidTabelIDResponse = "Пожалуйста введите табельный номер вашего ребенка";
-    private String numberRequest = "Для продолжения работы нужна регистрация";
-    private String welcome = "Регистрация завершена! Добро пожаловать!";
-    private String pleaseUserRegistrationButton = "Пожалуйста зарегистрируйтесь";
-    private String notFound = "Не найдено совпадений";
-    private String found = "Ребенок найден!";
-    private String alreadySubscribing = "Ребенок уже под вашим наблюдением";
-    private String alreadyRegistered = "Вы уже зарегистрированы";
-    private String subscribing = "Начинаем наблюдение...";
-    private String emptyList = "Список наблюдаемых детей пуст";
+    private String enterKidTabelIDResponse = "Балаңыздың табельдік нөмірін енгізіңіз " +"\n" + "Пожалуйста введите табельный номер вашего ребенка";
+    private String numberRequest = "Жұмысты жалғастыру үшін тіркелу қажет" + "\n" + "Для продолжения работы нужна регистрация";
+    private String welcome = "Тіркеу аяқталды! Қош келдіңіздер!" + "\n" + "Регистрация завершена! Добро пожаловать!";
+    private String pleaseUserRegistrationButton = "Өтініш, тіркеліңіз" + "\n" + "Пожалуйста, зарегистрируйтесь";
+    private String notFound = "Сәйкестік табылған жоқ" + "\n" + "Не найдено совпадений";
+    private String found = "Бала табылды!" + "\n" + "Ребенок найден!";
+    private String alreadySubscribing = "Бала сіздің бақылауыңызда" + "\n" + "Ребенок уже под вашим наблюдением";
+    private String alreadyRegistered = "Сіз тіркелдіңіз" + "\n" + "Вы уже зарегистрированы";
+    private String subscribing = "Бақылауды бастаймыз..." + "\n" + "Начинаем наблюдение...";
+    private String emptyList = "Бақыланатын балалар тізімі бос" + "\n" + "Список наблюдаемых детей пуст";
 
 
     @Override
@@ -150,7 +150,9 @@ public class Bot extends TelegramLongPollingBot {
                         }
                 } else if (update.getMessage().getReplyToMessage() != null) {
                     String message = update.getMessage().getText();
-                    String tabelId = StringUtils.leftPad(message.substring(0, 20), 20);
+                    String tabelId;
+                    if (message.length() > 20) tabelId = StringUtils.leftPad(message.substring(0, 20), 20);
+                    else tabelId = StringUtils.leftPad(message, 20);
                     String replyMessage = update.getMessage().getReplyToMessage().getText();
                     if (replyMessage.equals(enterKidTabelIDResponse)) {
                         Kid kid = botService.getKidByTabelId(tabelId);
@@ -238,20 +240,20 @@ public class Bot extends TelegramLongPollingBot {
         }
     }
 
-    private ReplyKeyboard getReplyKeyboardByUser() {
-        ReplyKeyboardMarkup markup = new ReplyKeyboardMarkup();
-        List<KeyboardRow> keyboard = new ArrayList<>();
-
-        KeyboardRow row1 = new KeyboardRow();
-        row1.add(new KeyboardButton(enterKidTabelID));
-        row1.add(new KeyboardButton(deleteKid));
-        keyboard.add(row1);
-
-        markup.setKeyboard(keyboard);
-        markup.setResizeKeyboard(true);
-
-        return markup;
-    }
+//    private ReplyKeyboard getReplyKeyboardByUser() {
+//        ReplyKeyboardMarkup markup = new ReplyKeyboardMarkup();
+//        List<KeyboardRow> keyboard = new ArrayList<>();
+//
+//        KeyboardRow row1 = new KeyboardRow();
+//        row1.add(new KeyboardButton(enterKidTabelID));
+//        row1.add(new KeyboardButton(deleteKid));
+//        keyboard.add(row1);
+//
+//        markup.setKeyboard(keyboard);
+//        markup.setResizeKeyboard(true);
+//
+//        return markup;
+//    }
 
     private void deleteMessage(Long chatID, Integer messageID) {
         DeleteMessage deleteMessage = new DeleteMessage();
