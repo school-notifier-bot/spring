@@ -22,7 +22,7 @@ app:
       characterEncoding: UTF-8
     bot:
       driver-class-name: com.mysql.cj.jdbc.Driver
-      url: jdbc:mysql://localhost:3306/notifier_bot
+      url: jdbc:mysql://localhost:3306/notifier_bot?createDatabaseIfNotExist=true
       username: root
       password:
 
