@@ -18,6 +18,6 @@ public class User {
     @Column(name = "last_name")
     private String lastName;
 
-    @Column(name = "phone_number", unique = true)
+    @Column(name = "phone_number")
     private String phoneNumber;
 }
