@@ -269,6 +269,7 @@ public class Bot extends TelegramLongPollingBot {
     }
 
     private void registerInDB(Update update, SendMessage sm) {
+        System.out.println(update.getMessage());
         Long chatID = update.getMessage().getChatId();
         String firstName = update.getMessage().getFrom().getFirstName();
         String lastName = update.getMessage().getFrom().getLastName();
