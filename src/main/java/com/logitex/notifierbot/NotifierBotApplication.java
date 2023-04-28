@@ -12,13 +12,14 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.Scheduled;
 
 import java.util.List;
 
 @RequiredArgsConstructor
 @SpringBootApplication
 @EnableScheduling
-public class NotifierBotApplication implements CommandLineRunner {
+public class NotifierBotApplication {
     private final Bot bot;
     private final BotService botService;
     private final PercoService percoService;
@@ -27,23 +28,21 @@ public class NotifierBotApplication implements CommandLineRunner {
         SpringApplication.run(NotifierBotApplication.class, args);
     }
 
-    @Override
-    public void run(String... args) throws Exception {
-        while (true) {
-            List<TabelIntermediadate> entries = percoService.getEntries();
-            if (!entries.isEmpty()) {
-                for (TabelIntermediadate tabelIntermediadate : entries) {
-                    Staff staff = percoService.getStaffById(tabelIntermediadate.getStaffID());
-                    Kid kid = botService.getKidByTabelId(staff.getTabelID());
-                    List<UserKid> userKids = botService.getByKid(kid);
-                    String time = percoService.getTime(tabelIntermediadate);
-                    Integer passType = tabelIntermediadate.getType();
-                    for (UserKid userKid : userKids) {
-                        bot.sendMessageToUser(userKid.getUser(), userKid.getKid(), passType, time);
-                    }
+    @Scheduled(fixedRate = 1000*60)
+    public void run() {
+        List<TabelIntermediadate> entries = percoService.updateData();
+        System.out.println(entries.size());
+        if (!entries.isEmpty()) {
+            for (TabelIntermediadate tabelIntermediadate : entries) {
+                Staff staff = percoService.getStaffById(tabelIntermediadate.getStaffID());
+                Kid kid = botService.getKidByTabelId(staff.getTabelID());
+                List<UserKid> userKids = botService.getByKid(kid);
+                String time = percoService.getTime(tabelIntermediadate);
+                Integer passType = tabelIntermediadate.getType();
+                for (UserKid userKid : userKids) {
+                    bot.sendMessageToUser(userKid.getUser(), userKid.getKid(), passType, time);
                 }
             }
-            Thread.sleep(1000*60);
         }
     }
 }

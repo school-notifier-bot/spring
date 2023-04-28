@@ -232,7 +232,7 @@ public class Bot extends TelegramLongPollingBot {
 
         SendMessage sm = new SendMessage();
         sm.setChatId(String.valueOf(user.getID()));
-        sm.setText(kid.getTabelID() + "\n" + kid.getFull_fio() + "\n" + type + "\n" + time);
+        sm.setText(kid.getFull_fio() + "\n" + type + "\n" + time);
         try {
             execute(sm);
         } catch (TelegramApiException e) {

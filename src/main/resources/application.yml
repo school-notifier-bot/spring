@@ -15,7 +15,7 @@ app:
   datasource:
     perco:
       driver-class-name: org.firebirdsql.jdbc.FBDriver
-      url: jdbc:firebirdsql://localhost:3050/C:\ProgramData\PERCo-S-20\SCD17K.FDB?sql_dialect=3&charSet=utf-8
+      url: jdbc:firebirdsql://localhost:3050/C:\Users\jugdg\IdeaProjects\spring\src\main\resources\db\SCD17K.FDB?sql_dialect=3&charSet=utf-8
       username: SYSDBA
       password: masterkey
       useUnicode: true
@@ -27,5 +27,5 @@ app:
       password:
 
 bot:
-  username: parent_notifier_bot
-  token: 5149330855:AAH8qQMEP-ZkVkMDw6wxMD-gmBJ64oiRpFs
+  username: lyceum_35_notifier_bot
+  token: 6182338227:AAHvHGDBxuSpafV8pYwZBgrg08r9fAk-xoo

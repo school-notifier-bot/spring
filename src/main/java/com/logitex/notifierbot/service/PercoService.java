@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 
 import java.sql.Date;
 import java.sql.Time;
+import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -23,14 +24,11 @@ import java.util.List;
 public class PercoService {
     private final TabelIntermediadateRepository tabelIntermediadateRepository;
     private final StaffRepository staffRepository;
-    @Getter
-    private List<TabelIntermediadate> entries = new ArrayList<>();
 
-    @Scheduled(fixedRate = 1000 * 60)
-    public void updateData() {
+    public List<TabelIntermediadate> updateData() {
         Date date = Date.valueOf(LocalDate.now());
         Time time = new Time(System.currentTimeMillis() - 1000 * 60);
-        entries = tabelIntermediadateRepository.findByDateAndTimeAfter(date, time);
+        return tabelIntermediadateRepository.findAllByDateAndTimeAfter(date, time);
     }
 
     public Staff getStaffByTabelId(String tabelId) {
